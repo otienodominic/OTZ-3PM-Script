@@ -1,0 +1,860 @@
+---
+title: "OTZ 3PM Report"
+author: "Dominic Ngalo"
+date: "February 13, 2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+This is an R Script to populate the data.Before you Run the script, *please indicate the period of interest for reporting here below:*
+
+```{r}
+fromDate <- as.Date("2019-10-01")
+toDate <- as.Date("2019-10-31")
+```
+
+
+
+### Importing the data in .csv format
+
+```{r data importation}
+library(knitr)
+library(ggplot2)
+library(gridExtra)
+library('RODBC')
+library(dplyr)
+library(ggthemes)
+
+
+```
+
+## Top ten list
+
+We can view the top 10 list of clients currently in otz!
+
+```{r pressure, echo=FALSE}
+otzRegister <- read.csv("otzregister.csv", header = TRUE, sep = ",")
+dim(otzRegister)
+
+```
+
+
+## Baseline Information
+
+### Total ALHIV enrolled in OTZ during the month
+```{r Enrolled, echo=FALSE}
+
+otzRegister$OTZStartDate <- as.Date(otzRegister$OTZStartDate, origin = "1899-12-30")
+otzRegister$BaselineVLDate <- as.Date(otzRegister$BaselineVLDate, origin = "1899-12-30")
+newEnrolled <- subset(otzRegister, otzRegister$OTZStartDate > fromDate & otzRegister$OTZStartDate < toDate)
+with(newEnrolled, table(Gender))
+
+```
+
+### ALHIV in OTZ with baseline VL results (VL within the last 6 months) at enrolment into OTZ
+
+```{r Baseline Viral Load, echo=FALSE}
+newWithVL <- subset(newEnrolled,  !is.null(newEnrolled$BaselineVL))
+with(newWithVL, table(Gender))
+```
+
+### ALHIV 's enrolled in OTZ with VL< 1000 at enrolment into OTZ
+
+```{r with suppressed Baseline VL <1000 , echo=FALSE}
+suppressedBaseline <- subset(newWithVL, newWithVL$BaselineVL < 1000)
+with(suppressedBaseline, table(Gender))
+
+```
+
+### ALHIV 's enrolled in OTZ with VL<400 at enrolment into OTZ
+
+```{r , echo=FALSE}
+suppressedBaseline <- subset(newWithVL, newWithVL$BaselineVL < 400)
+with(suppressedBaseline, table(Gender))
+```
+
+### ALHIV 's enrolled in OTZ with VL= LDL at enrolment into OTZ
+
+```{r , echo=FALSE}
+suppressedBaseline <- subset(newWithVL, newWithVL$BaselineVL < 1)
+with(suppressedBaseline, table(Gender))
+```
+
+## Additional monitoring
+
+### Number of adolescents in OTZ who were booked for appointments in the month
+
+```{r booked for Appointment, echo=FALSE}
+otzRegister$NextAppointmentDate <- as.Date(otzRegister$NextAppointmentDate, origin = "1899-12-30")
+otzRegister$LastVisitDate <- as.Date(otzRegister$LastVisitDate, origin = "1899-12-30")
+
+
+booked_1 <- subset(otzRegister, otzRegister$NextAppointmentDate >= fromDate & otzRegister$NextAppointmentDate <=toDate )
+booked_2 <- subset(otzRegister, otzRegister$LastVisitDate >= fromDate & otzRegister$LastVisitDate <=toDate )
+
+
+appointed <- rbind(booked_1, booked_2)
+
+with(appointed, table(Gender))
+
+```
+
+### Number of adolescents in OTZ who kept (came on/before the scheduled date) their clinic appointments
+```{r}
+with(booked_2, table(Gender))
+```
+
+### Number of adolescents in OTZ with adherence > 95% adherence
+
+```{r}
+adherent <- subset(booked_2, booked_2$LatestVL < 1000)
+with(adherent, table(Gender))
+```
+
+### Number of OTZ members who attended support group
+```{r}
+with(booked_2, table(Gender))
+```
+
+
+# COHORT REPORTING [10 - 19 years]
+
+```{r}
+'%notin%' <- Negate('%in%')
+cohort_1a <- subset(otzRegister, otzRegister$AgeCurrent >= 10 & otzRegister$AgeCurrent <= 19)
+cohort_1 <- subset(cohort_1a, cohort_1a$ARTOutcome %notin% c('Transfer', 'Death', 'Lost', 'Refused Care', 'Transfer'))
+cohort_1$LatestVLDate <- as.Date(cohort_1$LatestVLDate, origin = "1899-12-30")
+cohort_1$WithRoutine <- ifelse((cohort_1$LatestVLDate >= (fromDate-60) & cohort_1$LatestVLDate <=toDate), "Yes", "No")
+cohort_1$Unsuppressed <- ifelse((cohort_1$LatestVL > 1000 & cohort_1$WithRoutine == "Yes"), "Yes", "No")
+cohort_1$Suppressed <- ifelse((cohort_1$LatestVL < 1000 & cohort_1$WithRoutine == "Yes"), "Yes", "No")
+cohort_1$Less400 <- ifelse((cohort_1$LatestVL < 400 & cohort_1$WithRoutine == "Yes"), "Yes", "No")
+cohort_1$LDL <- ifelse((cohort_1$LatestVL < 1 & cohort_1$WithRoutine == "Yes"), "Yes", "No")
+```
+
+## Routine VL monitoring to assess the VL Testing Uptake and suppression
+
+### Total ALHIV in OTZ who were eligible for routine viral load testing during the reporting period
+
+#### MONTH 6
+
+```{r}
+eligible6 <- subset(cohort_1, cohort_1$OTZStartDate >= (fromDate - 180) & cohort_1$OTZStartDate >= (toDate - 180))
+with(eligible6, table(Gender))
+```
+
+#### MONTH 12
+
+```{r}
+eligible12 <- subset(cohort_1, cohort_1$OTZStartDate >= (fromDate - 360) & cohort_1$OTZStartDate >= (toDate - 360))
+with(eligible12, table(Gender))
+```
+
+#### MONTH 18
+
+```{r}
+eligible18 <- subset(cohort_1, cohort_1$OTZStartDate >= (fromDate - 540) & cohort_1$OTZStartDate >= (toDate - 540))
+with(eligible18, table(Gender))
+
+```
+
+#### MONTH 24
+
+```{r}
+eligible24 <- subset(cohort_1, cohort_1$OTZStartDate >= (fromDate - 720) & cohort_1$OTZStartDate >= (toDate - 720))
+with(eligible24, table(Gender))
+```
+
+### Number of ALHIV in OTZ whose samples were taken for routine viral load testing
+```{r}
+takenEligible6 <- subset(eligible6, eligible6$WithRoutine == 'Yes')
+takenEligible12 <- subset(eligible12, eligible12$WithRoutine == 'Yes')
+takenEligible18 <- subset(eligible18, eligible18$WithRoutine == 'Yes')
+takenEligible24 <- subset(eligible24, eligible24$WithRoutine == 'Yes')
+
+```
+
+
+#### MONTH 6
+
+```{r}
+with(takenEligible6, table(Gender))
+```
+
+
+#### MONTH 12
+```{r}
+with(takenEligible12, table(Gender))
+```
+
+
+#### MONTH 18
+```{r}
+with(takenEligible18, table(Gender))
+```
+
+
+#### MONTH 24
+```{r}
+with(takenEligible24, table(Gender))
+```
+
+
+
+### Number of ALHIV in OTZ with routine follow up VL results at the end of the reporting month
+#### MONTH 6
+
+```{r}
+with(takenEligible6, table(Gender))
+```
+
+
+#### MONTH 12
+```{r}
+with(takenEligible12, table(Gender))
+```
+
+
+#### MONTH 18
+```{r}
+with(takenEligible18, table(Gender))
+```
+
+
+#### MONTH 24
+```{r}
+with(takenEligible24, table(Gender))
+```
+
+### Number with follow up VL > 1000 copies/ml
+```{r}
+Over1000Eligible6 <- subset(eligible6, eligible6$Unsuppressed == 'Yes')
+Over1000Eligible12 <- subset(eligible12, eligible12$Unsuppressed == 'Yes')
+Over1000Eligible18 <- subset(eligible18, eligible18$Unsuppressed == 'Yes')
+Over1000Eligible24 <- subset(eligible24, eligible24$Unsuppressed == 'Yes')
+```
+
+#### MONTH 6
+```{r}
+with(Over1000Eligible6, table(Gender))
+```
+
+
+#### MONTH 12
+```{r}
+with(Over1000Eligible12, table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(Over1000Eligible18, table(Gender))
+```
+
+
+#### MONTH 24
+
+```{r}
+with(Over1000Eligible24, table(Gender))
+```
+
+### Number with follow up VL < 1000 copies/ml
+### Number of ALHIV in OTZ whose samples were taken for routine viral load testing
+```{r}
+less1000Eligible6 <- subset(eligible6, eligible6$Suppressed == 'Yes')
+less1000Eligible12 <- subset(eligible12, eligible12$Suppressed == 'Yes')
+less1000Eligible18 <- subset(eligible18, eligible18$Suppressed == 'Yes')
+less1000Eligible24 <- subset(eligible24, eligible24$Suppressed == 'Yes')
+
+```
+
+#### MONTH 6
+```{r}
+with(less1000Eligible6, table(Gender))
+```
+
+
+#### MONTH 12
+```{r}
+with(less1000Eligible12, table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(less1000Eligible18, table(Gender))
+```
+
+
+#### MONTH 24
+
+```{r}
+with(less1000Eligible24, table(Gender))
+```
+
+
+### Number with routine follow up VL < 400 copies/ml
+```{r}
+less400Eligible6 <- subset(eligible6, eligible6$Less400 == 'Yes')
+less400Eligible12 <- subset(eligible12, eligible12$Less400 == 'Yes')
+less400Eligible18 <- subset(eligible18, eligible18$Less400 == 'Yes')
+less400Eligible24 <- subset(eligible24, eligible24$Less400 == 'Yes')
+
+
+```
+
+#### MONTH 6
+```{r}
+with(less400Eligible6, table(Gender))
+```
+
+
+#### MONTH 12
+```{r}
+with(less400Eligible12, table(Gender))
+```
+
+
+#### MONTH 18
+```{r}
+with(less400Eligible18, table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(less400Eligible24, table(Gender))
+```
+
+### Number with routine follow up VL = LDL
+```{r}
+LDLEligible6 <- subset(eligible6, eligible6$LDL == 'Yes')
+LDLEligible12 <- subset(eligible12, eligible12$LDL == 'Yes')
+LDLEligible18 <- subset(eligible18, eligible18$LDL == 'Yes')
+LDLEligible24 <- subset(eligible24, eligible24$LDL == 'Yes')
+```
+
+
+#### MONTH 6
+```{r}
+with(LDLEligible6, table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(LDLEligible12, table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(LDLEligible18, table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(LDLEligible24, table(Gender))
+```
+
+##Routine VL monitoring to assess actual overall suppression for the cohort
+
+### Total ALHIV in OTZ who had valid viral load results during the reporting period
+```{r}
+overallCohort <- subset(cohort_1, !is.null(cohort_1$LatestVL))
+#with(overallCohort, table(Gender))
+```
+
+
+#### MONTH 6
+```{r}
+overall6 <- subset(overallCohort, (overallCohort$OTZStartDate >= (toDate - 180) & overallCohort$OTZStartDate <=(toDate)))
+with(overall6, table(Gender))
+```
+
+
+#### MONTH 12
+```{r}
+overall12 <- subset(overallCohort, (overallCohort$OTZStartDate >= (toDate - 360) & overallCohort$OTZStartDate <=(toDate -180)))
+with(overall12, table(Gender))
+```
+
+
+#### MONTH 18
+```{r}
+overall18 <- subset(overallCohort, (overallCohort$OTZStartDate >= (toDate - 540) & overallCohort$OTZStartDate <=(toDate -360)))
+with(overall18, table(Gender))
+```
+
+
+#### MONTH 24
+
+```{r}
+overall24 <- subset(overallCohort, (overallCohort$OTZStartDate >= (toDate - 720) & overallCohort$OTZStartDate <=(toDate -540)))
+with(overall24, table(Gender))
+```
+
+
+### Total ALHIV in OTZ who had valid viral load results > 1000 copies/ml
+
+#### MONTH 6
+```{r}
+with((subset(overall6, overall6$LatestVL > '1000')),table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with((subset(overall12, overall12$LatestVL > '1000')),table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with((subset(overall18, overall18$LatestVL > '1000')),table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with((subset(overall24, overall24$LatestVL > '1000')),table(Gender))
+```
+
+
+### Total ALHIV in OTZ who had valid viral load results < 1000 copies/ml
+
+#### MONTH 6
+```{r}
+with((subset(overall6, overall6$LatestVL < 1000)),table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with((subset(overall12, overall12$LatestVL < 1000)),table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with((subset(overall18, overall18$LatestVL < 1000)),table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with((subset(overall24, overall24$LatestVL < 1000)),table(Gender))
+```
+
+
+### Total ALHIV in OTZ who had valid viral load results < 400 copies/ml
+
+#### MONTH 6
+```{r}
+with((subset(overall6, overall6$LatestVL < 400)),table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with((subset(overall12, overall12$LatestVL < 400)),table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with((subset(overall18, overall18$LatestVL < 400)),table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with((subset(overall24, overall24$LatestVL < 400)),table(Gender))
+```
+
+
+### Total ALHIV in OTZ who had valid viral load results = LDL
+
+#### MONTH 6
+```{r}
+with((subset(overall6, overall6$LatestVL < 1)),table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with((subset(overall12, overall12$LatestVL < 1)),table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with((subset(overall18, overall18$LatestVL < 1)),table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with((subset(overall24, overall24$LatestVL < 1)),table(Gender))
+```
+
+## Tracking those with suspected treatment failure at baseline or within the reporting period
+
+### Total ALHIV in OTZ who had valid viral load results > 1000 copies/ml
+```{r}
+highBaseline <- subset(cohort_1, cohort_1$BaselineVL > 1000)
+```
+#### MONTH 6
+```{r}
+highB6 <- subset(highBaseline, ((OTZStartDate >= (toDate-180)) & (OTZStartDate <= (toDate-0))))
+with(highB6, table(Gender))
+```
+
+#### MONTH 12
+```{r}
+highB12 <- subset(highBaseline, ((OTZStartDate >= (toDate-360)) & (OTZStartDate <= (toDate-180))))
+with(highB12, table(Gender))
+```
+#### MONTH 18
+```{r}
+highB18 <- subset(highBaseline, ((OTZStartDate >= (toDate-540)) & (OTZStartDate <= (toDate-360))))
+with(highB18, table(Gender))
+```
+#### MONTH 24
+```{r}
+highB24 <- subset(highBaseline, ((OTZStartDate >= (toDate-720)) & (OTZStartDate <= (toDate-540))))
+with(highB24, table(Gender))
+```
+
+### Total ALHIV for the period of review who had repeat VL test results
+
+#### MONTH 6
+```{r}
+with(highB6, table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(highB12, table(Gender))
+```
+#### MONTH 18
+```{r}
+with(highB18, table(Gender))
+```
+#### MONTH 24
+```{r}
+with(highB24, table(Gender))
+```
+
+### Number with repeat VL < 1000 copies/ml
+
+#### MONTH 6
+```{r}
+with(subset(highB6, highB6$LatestVL < 1000), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(highB12, highB12$LatestVL < 1000), table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(subset(highB18, highB18$LatestVL < 1000), table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(subset(highB24, highB24$LatestVL < 1000), table(Gender))
+```
+
+
+### Number with repeat VL < 400 copies/ml
+#### MONTH 6
+```{r}
+with(subset(highB6, highB6$LatestVL < 400), table(Gender))
+```
+#### MONTH 12
+```{r}
+with(subset(highB12, highB12$LatestVL < 400), table(Gender))
+```
+#### MONTH 18
+```{r}
+with(subset(highB18, highB18$LatestVL < 400), table(Gender))
+```
+#### MONTH 24
+```{r}
+with(subset(highB24, highB24$LatestVL < 400), table(Gender))
+```
+
+### Number with repeat VL = LDL
+#### MONTH 6
+```{r}
+with(subset(highB6, highB6$LatestVL < 1), table(Gender))
+```
+#### MONTH 12
+```{r}
+with(subset(highB12, highB12$LatestVL < 1), table(Gender))
+```
+#### MONTH 18
+```{r}
+with(subset(highB18, highB18$LatestVL < 1), table(Gender))
+```
+#### MONTH 24
+```{r}
+with(subset(highB24, highB24$LatestVL < 1), table(Gender))
+```
+### Number with repeat VL > 1000 copies/ml
+#### MONTH 6
+```{r}
+with(subset(highB6, highB6$LatestVL > 1000), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(highB12, highB12$LatestVL > 1000), table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(subset(highB18, highB18$LatestVL > 1000), table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(subset(highB24, highB24$LatestVL > 1000), table(Gender))
+```
+
+### Number switched to second line ART
+#### MONTH 6
+```{r}
+with(subset(highB6, highB6$CurrentRegimenLine == 2), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(highB12, highB12$CurrentRegimenLine == 2), table(Gender))
+```
+#### MONTH 18
+```{r}
+with(subset(highB18, highB18$CurrentRegimenLine == 2), table(Gender))
+```
+#### MONTH 24
+```{r}
+with(subset(highB24, highB24$CurrentRegimenLine == 2), table(Gender))
+```
+
+### Number switched to third line ART
+#### MONTH 6
+```{r}
+with(subset(highB6, highB6$CurrentRegimenLine == 3), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(highB12, highB12$CurrentRegimenLine == 3), table(Gender))
+```
+#### MONTH 18
+```{r}
+with(subset(highB18, highB18$CurrentRegimenLine == 3), table(Gender))
+```
+#### MONTH 24
+```{r}
+with(subset(highB24, highB24$CurrentRegimenLine == 3), table(Gender))
+```
+
+## Tracking attritions
+
+```{r}
+
+cohort_Attrition <- subset(otzRegister, otzRegister$AgeCurrent >= '10' & otzRegister$AgeCurrent <= '19')
+
+
+attrition6 <- subset(cohort_Attrition, (OTZStartDate >= (toDate - 180) & OTZStartDate <=(toDate)))
+attrition12 <- subset(cohort_Attrition, (OTZStartDate >= (toDate - 360) & OTZStartDate <=(toDate-180)))
+attrition18 <- subset(cohort_Attrition, (OTZStartDate >= (toDate - 540) & OTZStartDate <=(toDate-360)))
+attrition24 <- subset(cohort_Attrition, (OTZStartDate >= (toDate - 720) & OTZStartDate <=(toDate-540)))
+
+```
+
+
+### Number transferred out during the review period
+#### MONTH 6
+```{r}
+with(subset(attrition6, ARTOutcome =='Transfer'), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(attrition12, ARTOutcome =='Transfer'), table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(subset(attrition18, ARTOutcome =='Transfer'), table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(subset(attrition24, ARTOutcome =='Transfer'), table(Gender))
+
+```
+
+### Number lost to follow up this during the review period
+#### MONTH 6
+```{r}
+with(subset(attrition6, ARTOutcome =='Lost'), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(attrition12, ARTOutcome =='Lost'), table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(subset(attrition18, ARTOutcome =='Lost'), table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(subset(attrition24, ARTOutcome =='Lost'), table(Gender))
+
+```
+### Number aged 20-24 years and transitioned to adult care during the review period 
+#### MONTH 6
+#### MONTH 12
+#### MONTH 18
+#### MONTH 24
+### Number reported as dead during the review period
+#### MONTH 6
+```{r}
+with(subset(attrition6, ARTOutcome =='Death'), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(attrition12, ARTOutcome =='Death'), table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(subset(attrition18, ARTOutcome =='Death'), table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(subset(attrition24, ARTOutcome =='Death'), table(Gender))
+
+```
+### Number that opted out of OTZ during the review period
+#### MONTH 6
+```{r}
+with(subset(attrition6, ARTOutcome =='Refused Care'), table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(attrition12, ARTOutcome =='Refused Care'), table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(subset(attrition18, ARTOutcome =='Refused Care'), table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(subset(attrition24, ARTOutcome =='Refused Care'), table(Gender))
+
+```
+
+
+# COHORT REPORTING [20 - 24 years]
+```{r}
+'%notin%' <- Negate('%in%')
+cohort_2a <- subset(otzRegister, otzRegister$AgeCurrent >= 20 & otzRegister$AgeCurrent <= 24)
+cohort_2 <- subset(cohort_2a, ARTOutcome %notin% c('Transfer', 'Death', 'Lost', 'Refused Care', 'Transfer'))
+
+
+yp6 <- subset(cohort_2, (OTZStartDate >= (toDate-180) & OTZStartDate <=(toDate)))
+yp12 <- subset(cohort_2,(OTZStartDate >=(toDate-360) & OTZStartDate <=(toDate-180)))
+yp18 <- subset(cohort_2, (OTZStartDate >=(toDate-540) & OTZStartDate <=(toDate-360)))
+yp24 <- subset(cohort_2, (OTZStartDate >=(toDate-720) & OTZStartDate <=(toDate-540)))
+
+```
+
+
+
+## Continuing services
+
+### Number of youths and young persons aged 20-24 years and still in the program
+#### MONTH 6
+```{r}
+with(yp6, table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(yp12, table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(yp18, table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(yp24, table(Gender))
+```
+### Total youths aged 20-24 years and still in OTZ who had valid viral load results during the reporting period
+#### MONTH 6
+```{r}
+with(yp6, table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(yp12, table(Gender))
+```
+
+#### MONTH 18
+```{r}
+with(yp18, table(Gender))
+```
+
+#### MONTH 24
+```{r}
+with(yp24, table(Gender))
+```
+### Total youths aged 20-24 years in OTZ who had valid viral load results < 1000 copies/ml
+#### MONTH 6
+```{r}
+with(subset(yp6, LatestVL < 1000),table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(yp12, LatestVL < 1000),table(Gender))
+```
+#### MONTH 18
+```{r}
+with(subset(yp18, LatestVL < 1000),table(Gender))
+```
+#### MONTH 24
+```{r}
+with(subset(yp24, LatestVL < 1000), table(Gender))
+```
+### Total youths aged 20-24 years in OTZ who had valid viral load results < 400 copies/ml
+#### MONTH 6
+```{r}
+with(subset(yp6, LatestVL < 400),table(Gender))
+```
+
+#### MONTH 12
+```{r}
+with(subset(yp12, LatestVL < 400),table(Gender))
+```
+#### MONTH 18
+```{r}
+with(subset(yp18, LatestVL < 400),table(Gender))
+```
+#### MONTH 24
+```{r}
+with(subset(yp24, LatestVL < 400), table(Gender))
+```
+### Number of youths aged 20-24 years who exited from Post OTZ group during the review period
+#### MONTH 6
+#### MONTH 12
+#### MONTH 18
+#### MONTH 24
