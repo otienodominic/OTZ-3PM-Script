@@ -16,8 +16,8 @@ knitr::opts_chunk$set(echo = FALSE)
 This is an R Script to populate the data.Before you Run the script, *please indicate the period of interest for reporting here below:*
 
 ```{r}
-fromDate <- as.Date("2019-10-01")
-toDate <- as.Date("2019-10-31")
+fromDate <- as.Date("2020-01-01","%Y-%m-%d")
+toDate <- as.Date("2020-01-30","%Y-%m-%d")
 ```
 
 
@@ -35,9 +35,7 @@ library(ggthemes)
 
 ```
 
-## Top ten list
-
-We can view the top 10 list of clients currently in otz!
+## Reading the data into R
 
 ```{r pressure, echo=FALSE}
 otzRegister <- read.csv("otzregister.csv", header = TRUE, sep = ",")
